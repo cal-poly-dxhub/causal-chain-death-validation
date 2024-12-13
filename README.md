@@ -11,7 +11,7 @@ https://www.cdc.gov/nchs/nvss/manuals/2024/2c-2024-raw.html
 Another useful link: https://www.cdc.gov/nchs/data/dvs/2c2009.pdf
 
 **Architecture**
-![alt text](https://github.com/cal-poly-dxhub/causal-chain-death-validation/blob/main/michArch.png)
+![alt text](https://github.com/cal-poly-dxhub/causal-chain-death-validation/blob/main/michArch.png =400x)
 
 **Steps to run:**
 
@@ -24,3 +24,25 @@ Another useful link: https://www.cdc.gov/nchs/data/dvs/2c2009.pdf
 2. If using the streamlit interface, run **streamlit run testApi.py**
 
 3. Test your chain of conditions.
+
+
+Example API Call in Python:
+
+```
+baseUrl = r"https://jeczjol1g9.execute-api.us-west-2.amazonaws.com/test/"
+endpoint = "recommendations"
+payload = {
+   'conditions': conditions_dict,
+   'wantCodeify': '0' 
+}
+full_url = f"{baseUrl}{endpoint}"
+response = requests.post(full_url, json=payload)
+```
+
+Payload Example:
+
+{'conditions': {'underlying condition': 'diabetes', 'condition 3': 'obesity', 'condition 2': 'high blood pressure', 'main condition': 'myocardial infarction'}, 'wantCodeify': '0'}
+
+underlying (4), 3, 2, main (1) where the main condition is the final disease or condition resulting in the death of the patient, and the preceding conditions are all causes of the next.
+So the underlying condition causes condition 3, condition 3 causes condition 2, and condition 2 causes the main condition.
+'1' to codeify the conditions, '0' to not codeify the conditions.
