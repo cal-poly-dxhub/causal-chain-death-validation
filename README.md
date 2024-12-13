@@ -11,7 +11,7 @@ https://www.cdc.gov/nchs/nvss/manuals/2024/2c-2024-raw.html
 Another useful link: https://www.cdc.gov/nchs/data/dvs/2c2009.pdf
 
 **Architecture**
-![alt text](https://github.com/cal-poly-dxhub/causal-chain-death-validation/blob/main/michArch.png =400x)
+![alt text](https://github.com/cal-poly-dxhub/causal-chain-death-validation/blob/main/michArch.png)
 
 **Steps to run:**
 
