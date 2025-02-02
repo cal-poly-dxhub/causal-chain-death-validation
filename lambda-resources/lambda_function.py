@@ -117,6 +117,7 @@ def validate(conditions_dict, wantCodeify="0"):
     # then we will run the 'codeified' conditions against pubmedbert
 
     results = []
+    titles = []
 
     embeddingsResults = {}
 
@@ -134,9 +135,10 @@ def validate(conditions_dict, wantCodeify="0"):
 
         result_dict = data['result']
 
-        filtered_result_dict = {k: v for k, v in result_dict.items() if float(k) >= 0.6} #good
+        filtered_result_dict = {k: v for k, v in result_dict.items() if float(k) >= 0.05} #good
 
         results.append(filtered_result_dict)
+        titles.append(cond)
 
     print("after embeddings request made")
     
@@ -189,7 +191,7 @@ def validate(conditions_dict, wantCodeify="0"):
 
     # then call the graph db to check stage 2
     
-    stage2res = stageTwo(icds[::-1])
+    stage2res = stageTwo(icds[::-1], titles[::-1])
 
     print("after stage 2 graph neptune done")
 
@@ -280,39 +282,53 @@ def formatURL(cond):
     base_url = f"http://10.0.29.235:8000/embeddings/{encodedCond}"
     return base_url
 
-def stageTwo(icds):
-    # subaddress causes address
+
+def stageTwo(icds, titles):
     if len(icds) == 1:
-        if icds[0] != '':
-            return "VALID"
-        else:
-            return "INVALID - INVALID CAUSE"
-    
+        return "VALID" if icds[0] else "INVALID - INVALID CAUSE"
     elif len(icds) == 0:
         return "NO ICDS TO BE VALIDATED"
     else:
+        # First, check all ICDs for emptiness
+        for idx, code in enumerate(icds):
+            if code == '':
+                return f"CONDITION @ POS {idx} (0-INDEXED) IS '', INVALID ENTRY"
+        
+        # Now validate causal relationships between consecutive pairs
         for i in range(len(icds) - 1):
-            if icds[i] == '':
-                return f"CONDITION @ POS {i} (0-INDEXED) IS '', INVALID ENTRY"
+            current_effect = icds[i+1]
+            current_cause = icds[i]
             
-            # Check if icds[i] causes icds[i+1]
-            #check relationship (address, code) -> code causes address
-            print(f"First Main check: Checking if {icds[i]} causes {icds[i+1]}")
-            if not checkRelationship(icds[i+1], icds[i]):
-                # Check if we can swap icds[i] with icds[i+1]
-                if checkRelationship(icds[i], icds[i+1]):
-                    # Perform the swap
-                    if(i>0):
-                        if(checkRelationship(icds[i+1], icds[i-1])):
-                            return f"SWAP {icds[i]} WITH {icds[i + 1]}"
-                        else:
-                            return f"ATTEMPTED TO SWAP: {icds[i]} WITH {icds[i + 1]}; BUT {icds[i - 1]} CANNOT CAUSE {icds[i + 1]}"
+            # Check if current_cause causes current_effect (via checkRelationship(effect, cause))
+            if not checkRelationship(current_effect, current_cause):
+                # If not, check if swapping would fix it (i.e., check if the inverse relationship holds)
+                swapped_effect = icds[i]
+                swapped_cause = icds[i+1]
+                if checkRelationship(swapped_effect, swapped_cause):
+                    # Swap is possible, but need to validate compatibility with neighbors
+                    error_msg = None
+                    # Check previous relationship (if not first element)
+                    if i > 0:
+                        prev_effect = icds[i+1]  # After swap, this becomes the new current_cause
+                        prev_cause = icds[i-1]   # Previous cause remains the same
+                        if not checkRelationship(prev_effect, prev_cause):
+                            error_msg = f"ATTEMPTED SWAP: {titles[i]} WITH {titles[i+1]}; BUT {titles[i-1]} CANNOT CAUSE {titles[i+1]}"
+                    
+                    # Check next relationship (if not last pair)
+                    if i < len(icds) - 2 and not error_msg:
+                        next_effect = icds[i+2]
+                        next_cause = icds[i]     # After swap, this becomes the new current_effect
+                        if not checkRelationship(next_effect, next_cause):
+                            error_msg = f"ATTEMPTED SWAP: {titles[i]} WITH {titles[i+1]}; BUT {titles[i]} CANNOT CAUSE {titles[i+2]}"
+                    
+                    if error_msg:
+                        return error_msg
                     else:
-                        return f"SWAP {icds[i]} WITH {icds[i + 1]}"
+                        return f"SWAP {titles[i]} WITH {titles[i+1]}"
                 else:
-                    return f"{icds[i+1]} CANNOT CAUSE {icds[i]} AND SWAP NOT POSSIBLE"
+                    return f"{titles[i+1]} CANNOT CAUSE {titles[i]} AND SWAP NOT POSSIBLE"
         return "VALID"
-    
+
 
 def format_conditions_dict(conditions):
     if len(conditions) == 1:
