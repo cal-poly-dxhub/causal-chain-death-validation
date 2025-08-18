@@ -34,6 +34,8 @@ Thanks for your interest in our solution.  Having specific examples of replicati
 - Noor Dhaliwal - rdhali07@calpoly.edu
 
 
+
+## Solution Overview
 This project is designed in collaboration with the State of Michigan Department of Health and the CDC.
 The purpose is to assist doctors in creating valid causal chains of conditions that lead to the death of a patient.
 With this application, doctors can input a chain of conditions, and optionally *codeify* them (an LLM will condition
